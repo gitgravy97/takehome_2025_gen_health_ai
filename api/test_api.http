@@ -1,0 +1,317 @@
+### Variables
+@baseUrl = http://localhost:8000
+@contentType = application/json
+
+###############################################################################
+# Root Endpoint
+###############################################################################
+
+### Test root endpoint
+GET {{baseUrl}}/
+Accept: {{contentType}}
+
+###############################################################################
+# PDF Processing Endpoint (End-to-End Order Creation)
+###############################################################################
+
+### Parse PDF and automatically create order with all dependencies
+# This endpoint performs a complete workflow:
+# 1. Parses the PDF to extract patient, prescriber, device, and order info
+# 2. Creates or looks up Patient by medical record number (auto-create if new)
+# 3. Creates or looks up Prescriber by NPI (auto-create if new)
+# 4. Creates or looks up Devices by SKU (auto-create if new)
+# 5. Creates the Order with all relationships
+# 6. Returns the created Order object
+#
+# NOTE: Replace 'sample_order.pdf' with the path to your actual PDF file
+# The PDF should contain patient info, prescriber info, device info, and order details
+POST {{baseUrl}}/orders/parse-pdf
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="sample_order.pdf"
+Content-Type: application/pdf
+
+< ./sample_order.pdf
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Alternative: Test with a non-PDF file (should fail with 400)
+# POST {{baseUrl}}/orders/parse-pdf
+# Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+#
+# ------WebKitFormBoundary7MA4YWxkTrZu0gW
+# Content-Disposition: form-data; name="file"; filename="not_a_pdf.txt"
+# Content-Type: text/plain
+#
+# < ./not_a_pdf.txt
+# ------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###############################################################################
+# Order Endpoints
+###############################################################################
+
+### Get an order by ID (query parameter)
+GET {{baseUrl}}/order?order_id=1
+Accept: {{contentType}}
+
+### Get a non-existent order
+GET {{baseUrl}}/order?order_id=9999
+Accept: {{contentType}}
+
+### Create a new order
+# NOTE: This requires existing patient_id, prescriber_id, and device_ids in the database
+# You'll need to create those first via database seeding or additional endpoints
+POST {{baseUrl}}/order
+Content-Type: {{contentType}}
+
+{
+  "item_name": "Continuous Glucose Monitor",
+  "order_cost_raw": 25000,
+  "order_cost_to_insurer": 20000,
+  "item_quantity": 1,
+  "reason_prescribed": "Type 2 diabetes management - patient requires continuous monitoring",
+  "patient_id": 1,
+  "prescriber_id": 1,
+  "device_ids": [1, 2]
+}
+
+### Create an order with minimal fields
+POST {{baseUrl}}/order
+Content-Type: {{contentType}}
+
+{
+  "patient_id": 1,
+  "prescriber_id": 1,
+  "device_ids": []
+}
+
+###############################################################################
+# NEW: Create Orders with Nested Objects (Auto-Create Pattern)
+###############################################################################
+
+### Create order with nested patient and prescriber (will auto-create if not exists)
+# Patient and Prescriber will be looked up by MRN and NPI respectively
+# If not found, they will be created automatically
+POST {{baseUrl}}/order
+Content-Type: {{contentType}}
+
+{
+  "item_name": "Continuous Glucose Monitor",
+  "order_cost_raw": 25000,
+  "order_cost_to_insurer": 20000,
+  "item_quantity": 1,
+  "reason_prescribed": "Type 2 diabetes management",
+  "patient": {
+    "medical_record_number": "MRN-12345",
+    "first_name": "John",
+    "last_name": "Doe",
+    "age": 45
+  },
+  "prescriber": {
+    "first_name": "Dr. Sarah",
+    "last_name": "Johnson",
+    "npi": "1234567890",
+    "phone_number": "555-0123",
+    "email": "sarah.johnson@clinic.com",
+    "clinic_name": "Downtown Medical Center",
+    "clinic_address": "123 Main St, City, ST 12345"
+  },
+  "device_ids": [1]
+}
+
+### Create second order with same patient MRN (should reuse existing patient)
+# This demonstrates the idempotent lookup - patient with MRN-12345 already exists
+# so it will be reused instead of creating a duplicate
+POST {{baseUrl}}/order
+Content-Type: {{contentType}}
+
+{
+  "item_name": "Blood Pressure Monitor",
+  "order_cost_raw": 15000,
+  "order_cost_to_insurer": 12000,
+  "item_quantity": 1,
+  "reason_prescribed": "Follow-up order for hypertension monitoring",
+  "patient": {
+    "medical_record_number": "MRN-12345",
+    "first_name": "John",
+    "last_name": "Doe",
+    "age": 45
+  },
+  "prescriber": {
+    "first_name": "Dr. Sarah",
+    "last_name": "Johnson",
+    "npi": "1234567890",
+    "phone_number": "555-0123",
+    "email": "sarah.johnson@clinic.com"
+  },
+  "device_ids": [2]
+}
+
+### Create order with new patient but same prescriber NPI (reuses prescriber)
+POST {{baseUrl}}/order
+Content-Type: {{contentType}}
+
+{
+  "item_name": "Insulin Pump",
+  "order_cost_raw": 50000,
+  "order_cost_to_insurer": 45000,
+  "item_quantity": 1,
+  "reason_prescribed": "Type 1 diabetes management",
+  "patient": {
+    "medical_record_number": "MRN-67890",
+    "first_name": "Jane",
+    "last_name": "Smith",
+    "age": 32
+  },
+  "prescriber": {
+    "first_name": "Dr. Sarah",
+    "last_name": "Johnson",
+    "npi": "1234567890"
+  },
+  "device_ids": [3]
+}
+
+###############################################################################
+# Back to Regular Tests
+###############################################################################
+
+### Create a second order for the same patient (tests one-to-many relationship)
+# This should succeed - patients can have multiple orders
+POST {{baseUrl}}/order
+Content-Type: {{contentType}}
+
+{
+  "item_name": "Blood Pressure Monitor",
+  "order_cost_raw": 15000,
+  "order_cost_to_insurer": 12000,
+  "item_quantity": 1,
+  "reason_prescribed": "Follow-up order for ongoing hypertension monitoring",
+  "patient_id": 1,
+  "prescriber_id": 1,
+  "device_ids": [2]
+}
+
+### Create an order with different patient but same prescriber
+# This should succeed - prescribers can have multiple orders
+POST {{baseUrl}}/order
+Content-Type: {{contentType}}
+
+{
+  "item_name": "Insulin Pump",
+  "order_cost_raw": 50000,
+  "order_cost_to_insurer": 45000,
+  "item_quantity": 1,
+  "reason_prescribed": "Type 1 diabetes management",
+  "patient_id": 2,
+  "prescriber_id": 1,
+  "device_ids": [3]
+}
+
+### Test error: Create order with non-existent patient
+POST {{baseUrl}}/order
+Content-Type: {{contentType}}
+
+{
+  "item_name": "Test Device",
+  "patient_id": 99999,
+  "prescriber_id": 1,
+  "device_ids": [1]
+}
+
+### Test error: Create order with non-existent prescriber
+POST {{baseUrl}}/order
+Content-Type: {{contentType}}
+
+{
+  "item_name": "Test Device",
+  "patient_id": 1,
+  "prescriber_id": 99999,
+  "device_ids": [1]
+}
+
+### Test error: Create order with non-existent device
+POST {{baseUrl}}/order
+Content-Type: {{contentType}}
+
+{
+  "item_name": "Test Device",
+  "patient_id": 1,
+  "prescriber_id": 1,
+  "device_ids": [99999]
+}
+
+###############################################################################
+# Sample Test Data (for database seeding)
+###############################################################################
+
+# NOTE: You'll need to create endpoints or seed data for these entities first
+# Here are example payloads for when you create those endpoints:
+
+### Example: Create Patient (endpoint doesn't exist yet)
+# POST {{baseUrl}}/patients
+# Content-Type: {{contentType}}
+#
+# {
+#   "first_name": "John",
+#   "last_name": "Doe",
+#   "age": 45
+# }
+
+### Example: Create Prescriber (endpoint doesn't exist yet)
+# POST {{baseUrl}}/prescribers
+# Content-Type: {{contentType}}
+#
+# {
+#   "first_name": "Dr. Sarah",
+#   "last_name": "Johnson",
+#   "npi": "1234567890",
+#   "phone_number": "555-0123",
+#   "email": "sarah.johnson@clinic.com",
+#   "clinic_name": "Downtown Medical Center",
+#   "clinic_address": "123 Main St, City, ST 12345"
+# }
+
+### Example: Create Device (endpoint doesn't exist yet)
+# POST {{baseUrl}}/devices
+# Content-Type: {{contentType}}
+#
+# {
+#   "sku": "CGM-2024-001",
+#   "name": "Continuous Glucose Monitor",
+#   "details": "Advanced CGM with smartphone connectivity",
+#   "authorization_required": true,
+#   "cost_per_unit": 25000,
+#   "device_type": "monitoring"
+# }
+
+###############################################################################
+# Relationship Model (Updated)
+###############################################################################
+
+# IMPORTANT: The relationship structure is:
+# - One Patient can have MANY Orders (one-to-many)
+# - One Prescriber can have MANY Orders (one-to-many)
+# - One Order belongs to ONE Patient (many-to-one)
+# - One Order belongs to ONE Prescriber (many-to-one)
+# - One Order can have MANY Devices (many-to-many via order_devices table)
+# - One Device can appear in MANY Orders (many-to-many via order_devices table)
+
+###############################################################################
+# Test Workflow
+###############################################################################
+
+# Complete test workflow (once all endpoints are created):
+# 1. Create a patient → save patient_id (e.g., patient_id = 1)
+# 2. Create another patient → save patient_id (e.g., patient_id = 2)
+# 3. Create a prescriber → save prescriber_id (e.g., prescriber_id = 1)
+# 4. Create multiple devices → save device_ids (e.g., device_ids = [1, 2, 3])
+# 5. Create first order for patient 1 with prescriber 1
+# 6. Create second order for patient 1 with prescriber 1 (should succeed - multiple orders allowed)
+# 7. Create third order for patient 2 with prescriber 1 (should succeed - same prescriber, different patient)
+# 8. Get orders to verify they were created correctly with all relationships
+
+# Test scenarios to verify:
+# ✓ Multiple orders can share the same patient_id
+# ✓ Multiple orders can share the same prescriber_id
+# ✓ Each order can have multiple devices
+# ✓ The same device can appear in multiple orders
