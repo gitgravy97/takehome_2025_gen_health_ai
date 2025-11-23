@@ -9,6 +9,7 @@ Next Steps I would go for
 
 Quick Ones (lot of juice, little squeeze)
 - I just realized I grabbed user Age rather than DOB, fairly easy fix
+  - There's probably some other data-realm improvements in terms of constraints to set
 - Setting up a docker file because that'd make repeated setup easier, plus make K8's easier to set up when the time comes
 - Setting up a data contract to keep frontend sync'd up with backend's data structures typescript-wise
 - Fix the unit tests in the api re: test_main.py
@@ -20,6 +21,10 @@ Less Quick Ones (substantial squeeze, but important)
   in taking this to production viability
 - Batch Upload because realistically the first user request to come in en masse would be multi-upload to streamline things
   once they get comfortable with it working and trust the system
+- Duplication management at the order-level. There's some ambiguity around best approach for that. Right now you can
+  re-upload that same pdf repeatedly and while things like doc/patient will not duplicate, you will duplicate orders.
+  - We could use a blend of features to come up with a policy handling dupes and it could be auto-reject or 
+  ideally some kind of human-in-the-loop review-flagged-entries approve-disapprove situation
 
 I did see the rate-limiting item and thought it important but picking llama for starters helps mitigate risk on that front.
 On a time squeeze that helps mitigate risk of runaway LLM API billing without me needing to go full app-sec during a timed
