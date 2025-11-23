@@ -7,19 +7,23 @@ I'm hitting that time limit so going to wrap things up here and get documenting 
 
 Next Steps I would go for
 
-Quick Ones
+Quick Ones (lot of juice, little squeeze)
 - I just realized I grabbed user Age rather than DOB, fairly easy fix
 - Setting up a docker file because that'd make repeated setup easier, plus make K8's easier to set up when the time comes
 - Setting up a data contract to keep frontend sync'd up with backend's data structures typescript-wise
-- More unit testing
+- Fix the unit tests in the api re: test_main.py
 
-Less Quick Ones
+Less Quick Ones (substantial squeeze, but important)
 - Setting up users w/ JWT's so then we can meaningfully authenticate user actions and audit log them
 - Front-end validation would be another "low-time-investment, high-payoff" in terms of data governance//integrity
 - Having not worked with specifically PHI I am certain that there's regulatory compliance things that'd need to be done
   in taking this to production viability
 - Batch Upload because realistically the first user request to come in en masse would be multi-upload to streamline things
   once they get comfortable with it working and trust the system
+
+I did see the rate-limiting item and thought it important but picking llama for starters helps mitigate risk on that front.
+On a time squeeze that helps mitigate risk of runaway LLM API billing without me needing to go full app-sec during a timed
+take-home project. IRL if we needed to use some paid service, rate limiting and auth'd obviously be immensely high-priority.
 
 ## 🎯 Overview
 
