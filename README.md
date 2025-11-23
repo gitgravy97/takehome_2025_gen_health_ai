@@ -40,7 +40,6 @@ This application automates the extraction of medical order information from PDF 
 - **📄 PDF Processing**: Supports both text-based PDFs and scanned documents (via OCR)
 - **🤖 AI-Powered Extraction**: Uses local Llama 3.1 model for intelligent data extraction
 - **✏️ Editable Review**: Review and modify extracted data before database submission
-- **⚠️ Duplicate Detection**: Automatically warns about potential duplicate orders
 - **🔄 Idempotent Entity Creation**: Smart lookup/create for patients, prescribers, and devices
 
 ### Data Management
@@ -204,7 +203,7 @@ Frontend will be available at: `http://localhost:3000`
    - Edit order details (item, quantity, costs, reason)
    - Add/remove/edit devices
 4. **Save**: Click "Save to Database" to persist the order
-5. **Review Results**: See the saved order with database IDs and any duplicate warnings
+5. **Review Results**: See the saved order with database IDs
 
 ## 📡 API Endpoints
 
@@ -242,7 +241,7 @@ Body: {
   ...
 }
 
-Returns: OrderCreateResponse (includes duplicate warnings)
+Returns: OrderCreateResponse
 ```
 
 **Get Order**
@@ -265,21 +264,6 @@ The extracted text is then sent to a local Llama 3.1 model with a structured pro
 - Prescriber information and credentials
 - Device/equipment details
 - Order-specific information
-
-### Duplicate Detection
-
-When saving an order, the system checks for potential duplicates by:
-- Matching patient and prescriber
-- Comparing item names (exact and partial matches)
-- Calculating a similarity score
-- Displaying warnings without blocking submission
-
-Example warning:
-```
-⚠️ Potential Duplicate Orders Detected
-Order #15 - Wheelchair (Qty: 1)
-  Reasons: Exact item name match
-```
 
 ### Idempotent Entity Creation
 
