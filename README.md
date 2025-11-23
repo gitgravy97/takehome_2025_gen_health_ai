@@ -6,14 +6,20 @@ An intelligent medical order processing system that extracts structured data fro
 I'm hitting that time limit so going to wrap things up here and get documenting before the clock runs out
 
 Next Steps I would go for
+
+Quick Ones
 - I just realized I grabbed user Age rather than DOB, fairly easy fix
-- Setting up users w/ JWT's so then we can meaningfully authenticate user actions and audit log them
 - Setting up a docker file because that'd make repeated setup easier, plus make K8's easier to set up when the time comes
+- Setting up a data contract to keep frontend sync'd up with backend's data structures typescript-wise
+- More unit testing
+
+Less Quick Ones
+- Setting up users w/ JWT's so then we can meaningfully authenticate user actions and audit log them
 - Front-end validation would be another "low-time-investment, high-payoff" in terms of data governance//integrity
 - Having not worked with specifically PHI I am certain that there's regulatory compliance things that'd need to be done
   in taking this to production viability
-- Setting up a data contract to keep frontend sync'd up with backend's data structures typescript-wise
-- More unit testing
+- Batch Upload because realistically the first user request to come in en masse would be multi-upload to streamline things
+  once they get comfortable with it working and trust the system
 
 ## 🎯 Overview
 
