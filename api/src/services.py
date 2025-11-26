@@ -92,7 +92,7 @@ def get_or_create_device(db: Session, device_data: dict) -> int:
     db.flush()  # Get ID without committing the transaction
     return new_device.id
 
-
+ # todo Fix :: doesn't really work at the moment
 def check_for_duplicate_orders(
     db: Session,
     patient_id: int,
@@ -440,7 +440,7 @@ JSON output:"""
             order_cost_to_insurer=None,
             item_quantity=order_data.get('item_quantity'),
             reason_prescribed=order_data.get('reason_prescribed'),
-            confidence_score=0.9,  # LLM extraction typically high confidence
+            confidence_score=0.9,  # todo Either implement meaningfully, tweak to a completeness score, or remove
             extraction_notes=f"Extracted from {filename} using Ollama (llama3.1:8b)"
         )
 
