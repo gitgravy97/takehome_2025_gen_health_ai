@@ -105,7 +105,7 @@ function App() {
       }
 
       const savedData = JSON.parse(responseText)
-      setSavedOrder(savedData)
+      setSavedOrder(savedData.order)  // Extract the order from OrderCreateResponse
       setParsedData(null) // Clear the form after successful save
     } catch (err) {
       console.error('Save error:', err)
