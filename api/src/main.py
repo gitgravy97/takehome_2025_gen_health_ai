@@ -56,12 +56,18 @@ def read_root():
 
 @app.get("/order")
 def read_user(order_id: int, db: Session = Depends(get_db)):
-    return db.query(models.Order).filter(models.Order.id == order_id).first()
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if order is None:
+        raise HTTPException(status_code=404, detail=None)
+    return order
 
 @app.post("/order", response_model=schemas.OrderCreateResponse)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
-    result = services.create_order(db, order)
-    return result
+    try:
+        result = services.create_order(db, order)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 @app.post("/orders/parse-pdf-preview", response_model=schemas.ParsedOrderData)
 async def parse_pdf_preview(file: UploadFile = File(...)):
@@ -96,7 +102,7 @@ async def parse_pdf_preview(file: UploadFile = File(...)):
         )
 
 
-@app.post("/orders/parse-pdf", response_model=schemas.OrderRead)
+@app.post("/orders/parse-pdf-direct-create", response_model=schemas.OrderRead)
 async def parse_and_create_order_from_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """
     Parse a medical order PDF and automatically create the order with all dependencies.

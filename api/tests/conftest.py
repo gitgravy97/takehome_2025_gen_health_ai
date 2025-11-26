@@ -8,6 +8,7 @@ including test database setup, test client, and sample data.
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 
 from src.database import Base
@@ -18,10 +19,11 @@ from src.models import Patient, Prescriber, Device, Order
 # Use in-memory SQLite database for testing
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
 
-# Create test database engine
+# Create test database engine with StaticPool to ensure all connections share the same in-memory database
 engine = create_engine(
     SQLALCHEMY_TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool
 )
 
 # Create test session factory

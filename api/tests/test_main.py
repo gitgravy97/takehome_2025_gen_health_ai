@@ -36,11 +36,11 @@ class TestGetOrderEndpoint:
         assert data["item_name"] == sample_order.item_name
 
     def test_get_nonexistent_order(self, client: TestClient):
-        """Test retrieving a non-existent order returns None."""
+        """Test retrieving a non-existent order returns 404."""
         response = client.get("/order?order_id=99999")
 
-        assert response.status_code == 200
-        assert response.json() is None
+        assert response.status_code == 404
+        assert "detail" in response.json()
 
     def test_get_order_with_relationships(self, client: TestClient, sample_order):
         """Test that order includes patient, prescriber, and device relationships."""
@@ -328,7 +328,7 @@ class TestParseAndCreateOrderFromPDFEndpoint:
         file_content = b"This is not a PDF"
         files = {"file": ("test.txt", BytesIO(file_content), "text/plain")}
 
-        response = client.post("/orders/parse-pdf", files=files)
+        response = client.post("/orders/parse-pdf-direct-create", files=files)
 
         assert response.status_code == 400
         assert "Invalid file type" in response.json()["detail"]
@@ -339,7 +339,7 @@ class TestParseAndCreateOrderFromPDFEndpoint:
         large_content = b"x" * (11 * 1024 * 1024)  # 11MB
         files = {"file": ("test.pdf", BytesIO(large_content), "application/pdf")}
 
-        response = client.post("/orders/parse-pdf", files=files)
+        response = client.post("/orders/parse-pdf-direct-create", files=files)
 
         assert response.status_code == 400
         assert "File too large" in response.json()["detail"]
@@ -369,7 +369,7 @@ class TestParseAndCreateOrderFromPDFEndpoint:
         pdf_content = b"fake pdf content"
         files = {"file": ("test.pdf", BytesIO(pdf_content), "application/pdf")}
 
-        response = client.post("/orders/parse-pdf", files=files)
+        response = client.post("/orders/parse-pdf-direct-create", files=files)
 
         assert response.status_code == 200
         data = response.json()
@@ -387,7 +387,7 @@ class TestParseAndCreateOrderFromPDFEndpoint:
         pdf_content = b"fake pdf content"
         files = {"file": ("test.pdf", BytesIO(pdf_content), "application/pdf")}
 
-        response = client.post("/orders/parse-pdf", files=files)
+        response = client.post("/orders/parse-pdf-direct-create", files=files)
 
         assert response.status_code == 400
         assert "Failed to process PDF" in response.json()["detail"]
@@ -402,7 +402,7 @@ class TestParseAndCreateOrderFromPDFEndpoint:
         pdf_content = b"fake pdf content"
         files = {"file": ("test.pdf", BytesIO(pdf_content), "application/pdf")}
 
-        response = client.post("/orders/parse-pdf", files=files)
+        response = client.post("/orders/parse-pdf-direct-create", files=files)
 
         assert response.status_code == 500
         assert "Failed to process PDF" in response.json()["detail"]
