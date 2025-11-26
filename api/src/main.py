@@ -6,14 +6,47 @@ from . import models
 from . import schemas
 from . import services
 
-# todo figure out splitting this out into routes.py and maybe services.py or something
-
 def get_db():
     db = database.SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+async def validate_pdf_file(file: UploadFile, max_size_mb: int = 10):
+    """
+    Validate that uploaded file is a PDF and within size limits.
+
+    Args:
+        file: The uploaded file to validate
+        max_size_mb: Maximum file size in megabytes (default: 10)
+
+    Returns:
+        The file content as bytes
+
+    Raises:
+        HTTPException: If validation fails
+    """
+    # Validate file type
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only PDF files are accepted."
+        )
+
+    # Validate file size
+    content = await file.read()
+    max_size = max_size_mb * 1024 * 1024
+    if len(content) > max_size:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size is {max_size_mb}MB."
+        )
+
+    # Reset file pointer after reading
+    await file.seek(0)
+
+    return content
 
 app = FastAPI()
 
@@ -44,24 +77,8 @@ async def parse_pdf_preview(file: UploadFile = File(...)):
     Use this endpoint to preview/edit the extracted data before submission.
     Returns parsed data that can be edited and then submitted via POST /order.
     """
-    # Validate file type
-    if not file.filename.endswith('.pdf'):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid file type. Only PDF files are accepted."
-        )
-
-    # Validate file size (e.g., max 10MB)
-    content = await file.read()
-    max_size = 10 * 1024 * 1024  # 10MB
-    if len(content) > max_size:
-        raise HTTPException(
-            status_code=400,
-            detail=f"File too large. Maximum size is {max_size / 1024 / 1024}MB."
-        )
-
-    # Reset file pointer after reading
-    await file.seek(0)
+    # Validate PDF file
+    await validate_pdf_file(file)
 
     try:
         # Parse PDF without persisting to database
@@ -99,24 +116,8 @@ async def parse_and_create_order_from_pdf(file: UploadFile = File(...), db: Sess
 
     Returns the created Order object with all relationships populated.
     """
-    # Validate file type
-    if not file.filename.endswith('.pdf'):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid file type. Only PDF files are accepted."
-        )
-
-    # Validate file size (e.g., max 10MB)
-    content = await file.read()
-    max_size = 10 * 1024 * 1024  # 10MB
-    if len(content) > max_size:
-        raise HTTPException(
-            status_code=400,
-            detail=f"File too large. Maximum size is {max_size / 1024 / 1024}MB."
-        )
-
-    # Reset file pointer after reading
-    await file.seek(0)
+    # Validate PDF file
+    await validate_pdf_file(file)
 
     try:
         # Process PDF: parse, create entities, and create order
